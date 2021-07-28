@@ -37,15 +37,12 @@ distributions.
 A note on `cdi4dc` and `cdirip`
 -------------------------------
 
-`cdi4dc` and `cdirip` usually don't come in distribution repositories and you
-likely need to build them from sources.  Grab the [sources for
+`cdi4dc` and `cdirip` usually don't come in distribution repositories
+and you likely need to build them from sources.  Grab the [sources for
 `cdi4dc`](https://github.com/Kazade/img4dc) and [sources for
-`cdirip`](https://github.com/jozip/cdirip), compile them, and place the compiled
-binaries in the tools directory.  If you already have these programs on your
-system you can either add a symlink to them in the `tools/` directory or edit
-the script to remove the `./tools/cdi4dc` and `./tools/cdirip` checks at the
-beginning and then use the system copies of `cdi4dc` and `cdirip` towards the
-end of the script.
+`cdirip`](https://github.com/jozip/cdirip), compile them, and either
+install them globally or place the compiled binaries in the `tools/`
+directory.
 
 
 Usage

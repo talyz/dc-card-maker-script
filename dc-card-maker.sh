@@ -38,28 +38,17 @@ BOLD=$(if [[ -n ${TERM:+x} ]]; then if [[ "$TERM" != "dumb" ]]; then tput bold; 
 NORMAL=$(if [[ -n ${TERM:+x} ]]; then if [[ "$TERM" != "dumb" ]]; then tput sgr0; fi; fi)
 trap 'echo Error when executing ${BOLD}${BASH_COMMAND}${NORMAL} at line ${BOLD}${LINENO}${NORMAL}! 1>&2' ERR
 
+SCRIPT_PATH=`cd "$(dirname "$0")"; pwd -P`
+export PATH="$SCRIPT_PATH/tools:$PATH"
+
 # Check for required commands
-command -v genisoimage >/dev/null 2>&1 || {
-    echo -e "$RED""This script requires genisoimage. Aborting script""$NORMAL" >&2
-    exit 5
-}
-
-command -v ./tools/cdi4dc >/dev/null 2>&1 || {
-    echo -e "$RED""This script requires cdi4dc to be present in tools/ directory.""$NORMAL" >&2
-    echo -e "$RED""See README for details.  Aborting script""$NORMAL" >&2
-    exit 6
-}
-
-command -v ./tools/cdirip >/dev/null 2>&1 || {
-    echo -e "$RED""This script requires cdirip to be present in tools/ directory.""$NORMAL" >&2
-    echo -e "$RED""See README for details.  Aborting script""$NORMAL" >&2
-    exit 6
-}
-
-command -v unzip >/dev/null 2>&1 || {
-    echo -e "$RED""This script requires unzip. Aborting script""$NORMAL" >&2
-    exit 7
-}
+for c in genisoimage cdi4dc cdirip unzip; do
+    command -v $c >/dev/null 2>&1 || {
+        echo -e "$RED""This script requires $c.""$NORMAL" >&2
+        echo -e "$RED""See README for details. Aborting script""$NORMAL" >&2
+        exit 5
+    }
+done
 
 # Process command line args
 if [ "$#" != 3 ]; then
@@ -250,11 +239,11 @@ while read GAME; do
     # read this information we need to extract the CDI file to a /tmp directory
     # in order to get access to data tracks.
     if [[ $TYPE == "gdi" ]]; then
-        ./tools/gditools.py -i "$TARGET_DIR/$DIR_NAME/disc.gdi" -b ip.bin
+        gditools.py -i "$TARGET_DIR/$DIR_NAME/disc.gdi" -b ip.bin
         METADATA_FILE="$TARGET_DIR/$DIR_NAME/ip.bin"
     else
         TMP_DIR=`mktemp -d -t dc-card-maker-XXXXX`
-        ./tools/cdirip "$TARGET_DIR/$DIR_NAME/disc.cdi" $TMP_DIR
+        cdirip "$TARGET_DIR/$DIR_NAME/disc.cdi" $TMP_DIR
         # Note: this is potentially fragile, assumes data tracks have *.iso
         # extension
         METADATA_FILE=`find $TMP_DIR -type f -name *.iso | sort | tail -n 1`
@@ -294,7 +283,7 @@ done < "$INPUT_FILE"
 echo "Building GDMenu disc image"
 GDMENU_CDI=$(mktemp)
 GDMENU_ISO=$(mktemp)
-genisoimage -C 0,11702 -V GDMENU -G data/ip.bin -r -J -l -input-charset iso8859-1 -o $GDMENU_ISO data/1ST_READ.BIN $GDMENU_INI
+genisoimage -C 0,11702 -V GDMENU -G "$SCRIPT_PATH/data/ip.bin" -r -J -l -input-charset iso8859-1 -o $GDMENU_ISO "$SCRIPT_PATH/data/1ST_READ.BIN" $GDMENU_INI
 rm $GDMENU_INI
 cdi4dc $GDMENU_ISO $GDMENU_CDI
 rm $GDMENU_ISO
@@ -303,7 +292,7 @@ mv $GDMENU_CDI "$TARGET_DIR/01/gdmenu.cdi"
 
 # Copy default GDMenu configuration
 echo "Copying GDEMU configuration"
-cp ini/GDEMU.ini "$TARGET_DIR"
+install -m 0644 "$SCRIPT_PATH/ini/GDEMU.ini" "$TARGET_DIR"
 
 # Restore backup copy of GDMenu
 if [[ -d "$TARGET_DIR/gdmenu_old" ]]; then
