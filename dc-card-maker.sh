@@ -73,7 +73,7 @@ INPUT_FILE=$1
 SOURCE_DIR=$2
 TARGET_DIR=$3
 OUTPUT_FILE=$3/game_list.txt
-GDMENU_INI=ini/LIST.INI
+GDMENU_INI=$(mktemp)
 ARCHIVE_FILE=archive.txt
 NAME_FILE=name.txt # collides (coincides?) with MadSheep's Windows SD card maker
 
@@ -121,11 +121,6 @@ if [[ ! -z $TARGET_DIRS ]]; then
     fi
 fi
 
-# Initialize GDMenu ini file.
-if [[ -e $GDMENU_INI ]]; then
-    echo "$GDMENU_INI exists, backing up as ${GDMENU_INI}.bak"
-    mv "$GDMENU_INI" "$GDMENU_INI"".bak"
-fi
 # Values here are hardcoded since we know what the ip.bin contains.  If ip.bin
 # ever gets updated these lines need to be updated accordingly
 echo "[GDMENU]"          >> $GDMENU_INI
@@ -297,11 +292,14 @@ done < "$INPUT_FILE"
 
 # Build GDMenu cdi image and put it in 01 directory
 echo "Building GDMenu disc image"
-genisoimage -C 0,11702 -V GDMENU -G data/ip.bin -r -J -l -input-charset iso8859-1 -o gdmenu.iso data/1ST_READ.BIN $GDMENU_INI
-./tools/cdi4dc gdmenu.iso gdmenu.cdi
-rm gdmenu.iso
+GDMENU_CDI=$(mktemp)
+GDMENU_ISO=$(mktemp)
+genisoimage -C 0,11702 -V GDMENU -G data/ip.bin -r -J -l -input-charset iso8859-1 -o $GDMENU_ISO data/1ST_READ.BIN $GDMENU_INI
+rm $GDMENU_INI
+cdi4dc $GDMENU_ISO $GDMENU_CDI
+rm $GDMENU_ISO
 mkdir "$TARGET_DIR/01"
-mv gdmenu.cdi "$TARGET_DIR/01"
+mv $GDMENU_CDI "$TARGET_DIR/01/gdmenu.cdi"
 
 # Copy default GDMenu configuration
 echo "Copying GDEMU configuration"
