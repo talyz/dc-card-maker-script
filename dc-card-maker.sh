@@ -22,30 +22,42 @@
 # with this program; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
-# For error printing in red
-STARTRED="\e[31m"
-ENDRED="\e[0m"
+
+# Error handling
+#
+# Handle errors automatically: trap the error signal of executed
+# commands and print a useful debugging message when an error occurs,
+# stopping execution.
+set -o nounset           # Fail on use of unset variable
+set -o errexit           # Exit on command failure
+set -o pipefail          # Exit on failure of any command in a pipeline
+set -o errtrace          # Trap errors in functions and subshells
+shopt -s inherit_errexit # Subshells inherit the value of the errexit option
+RED=$(if [[ -n ${TERM:+x} ]]; then if [[ "$TERM" != "dumb" ]]; then tput setaf 1; fi; fi)
+BOLD=$(if [[ -n ${TERM:+x} ]]; then if [[ "$TERM" != "dumb" ]]; then tput bold; fi; fi)
+NORMAL=$(if [[ -n ${TERM:+x} ]]; then if [[ "$TERM" != "dumb" ]]; then tput sgr0; fi; fi)
+trap 'echo Error when executing ${BOLD}${BASH_COMMAND}${NORMAL} at line ${BOLD}${LINENO}${NORMAL}! 1>&2' ERR
 
 # Check for required commands
 command -v genisoimage >/dev/null 2>&1 || {
-    echo -e "$STARTRED""This script requires genisoimage to be present in the system. Aborting script""$ENDRED" >&2
+    echo -e "$RED""This script requires genisoimage. Aborting script""$NORMAL" >&2
     exit 5
 }
 
 command -v ./tools/cdi4dc >/dev/null 2>&1 || {
-    echo -e "$STARTRED""This script requires cdi4dc to be present in tools/ directory""$ENDRED" >&2
-    echo -e "$STARTRED""See README for details.  Aborting script""$ENDRED" >&2
+    echo -e "$RED""This script requires cdi4dc to be present in tools/ directory.""$NORMAL" >&2
+    echo -e "$RED""See README for details.  Aborting script""$NORMAL" >&2
     exit 6
 }
 
 command -v ./tools/cdirip >/dev/null 2>&1 || {
-    echo -e "$STARTRED""This script requires cdirip to be present in tools/ directory""$ENDRED" >&2
-    echo -e "$STARTRED""See README for details.  Aborting script""$ENDRED" >&2
+    echo -e "$RED""This script requires cdirip to be present in tools/ directory.""$NORMAL" >&2
+    echo -e "$RED""See README for details.  Aborting script""$NORMAL" >&2
     exit 6
 }
 
 command -v unzip >/dev/null 2>&1 || {
-    echo -e "$STARTRED""This script requires unzip to be present in the system. Aborting script""$ENDRED" >&2
+    echo -e "$RED""This script requires unzip. Aborting script""$NORMAL" >&2
     exit 7
 }
 
@@ -86,11 +98,11 @@ fi
 # Abort the script to avoid problems and potential data loss.
 LEFTOVER_DIRS=`find $TARGET_DIR -regextype sed -regex "$TARGET_DIR/*[0-9][0-9]*_"`
 if [[ ! -z $LEFTOVER_DIRS ]]; then
-    echo -e "$STARTRED""Following directories from previous session found:""$ENDRED" >&2
+    echo -e "$RED""Following directories from previous session found:""$NORMAL" >&2
     for DIR in $LEFTOVER_DIRS; do
         echo "$DIR" >&2
     done
-    echo -e "$STARTRED""Aborting script.  Remove these directories and run the script again""$ENDRED" >&2
+    echo -e "$RED""Aborting script.  Remove these directories and run the script again""$NORMAL" >&2
     exit
 fi
 
@@ -172,7 +184,7 @@ while read GAME; do
 
         # Missing archives are not considered fatal, just skip the game
         if [[ ! -f "$GAME_ARCHIVE" ]]; then
-            echo -e "$STARTRED""Game archive not found: \"$GAME_ARCHIVE\", skipping""$ENDRED"
+            echo -e "$RED""Game archive not found: \"$GAME_ARCHIVE\", skipping""$NORMAL"
             break
         fi
 
@@ -182,8 +194,8 @@ while read GAME; do
         # Extracting errors are fatal - maybe we have no space left on the
         # device?  Abort the script instead of wreaking havoc
         if [[ $? -ne 0 ]]; then
-            echo -e "$STARTRED""Error extracting archive: $GAME_ARCHIVE""$ENDRED" >&2
-            echo -e "$STARTRED""Aborting script""$ENDRED" >&2
+            echo -e "$RED""Error extracting archive: $GAME_ARCHIVE""$NORMAL" >&2
+            echo -e "$RED""Aborting script""$NORMAL" >&2
             exit;
         fi
 
@@ -203,8 +215,8 @@ while read GAME; do
         # execution can potentially cause mess so skipping seems like a better
         # solution.
         if [[ -z $DISC_FILE ]]; then
-            echo -e "$STARTRED""Couldn't find any GDI or CDI file in $GAME_ARCHIVE""$ENDRED" >&2
-            echo -e "$STARTRED""Skipping""$ENDRED" >&2
+            echo -e "$RED""Couldn't find any GDI or CDI file in $GAME_ARCHIVE""$NORMAL" >&2
+            echo -e "$RED""Skipping""$NORMAL" >&2
             break
         fi
 
@@ -307,9 +319,9 @@ rmdir "$TMP_UNZIP_DIR"
 # if these exist.
 LEFTOVER_DIRS=`find $TARGET_DIR -regextype sed -regex "$TARGET_DIR/*[0-9][0-9]*_"`
 if [[ ! -z $LEFTOVER_DIRS ]]; then
-    echo -e "$STARTRED""Following directories at target directory contain old games""$ENDRED"
+    echo -e "$RED""Following directories at target directory contain old games""$NORMAL"
     for DIR in $LEFTOVER_DIRS; do
-        echo -e "$STARTRED"$DIR"$ENDRED"
+        echo -e "$RED"$DIR"$NORMAL"
     done
-    echo -e "$STARTRED""Delete or move them to a different location.""$ENDRED"
+    echo -e "$RED""Delete or move them to a different location.""$NORMAL"
 fi
